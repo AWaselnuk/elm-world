@@ -1,11 +1,13 @@
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
+import Random
 
 main =
-  Html.beginnerProgram 
-    { model = model 
+  Html.program
+    { init = (model, Cmd.none)
     , update = update
+    , subscriptions = \_ -> Sub.none
     , view = view 
     }
 
@@ -34,14 +36,24 @@ model =
 type Msg =
   NoOp
   | GenerateMap
+  | NewMap (Int, Int)
   
-update : Msg -> Model -> Model
+update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     NoOp ->
-      model
+      (model, Cmd.none)
     GenerateMap ->
-      model 
+      (model, Random.generate NewMap (Random.pair (Random.int 0 1000) (Random.int 0 1000)))
+    NewMap randomPoint ->
+      let
+        (x, y) = randomPoint
+        newTiles = [ Tile x y 50 "magenta" ]
+      in
+        
+      ({ model | 
+            tiles = newTiles }
+      , Cmd.none) 
 
 -- VIEW
 
