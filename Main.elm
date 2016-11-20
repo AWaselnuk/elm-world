@@ -1,5 +1,6 @@
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Html.Events exposing (onClick)
 
 main =
   Html.beginnerProgram 
@@ -10,39 +11,85 @@ main =
 
 -- MODEL
 
-type alias Model = {}
+type alias Tile = 
+  { x : Int
+  , y : Int
+  , size : Int
+  , color : String
+  }
+  
+type alias Model = 
+  { tiles : List Tile
+  }
 
 model : Model
 model =
-  {}
+  let
+    tiles = [ Tile 50 50 50 "magenta" ]
+  in
+    { tiles = tiles }
 
 -- UPDATE
 
-type Msg = NoOp
-
+type Msg =
+  NoOp
+  | GenerateMap
+  
 update : Msg -> Model -> Model
 update msg model =
   case msg of
     NoOp ->
       model
+    GenerateMap ->
+      model 
 
 -- VIEW
 
 view : Model -> Html Msg
 view model =
-  main_
-    [ cssMain ]
-    [ 
-      div 
-        [ cssControlPanel ]
-        [
-          button 
-            [ cssBtn, cssBtnGenerate ]
-            [ text "GENERATE MAP" ]
-        ]
-    ]
+  let 
+    viewTile tile =
+      div [ cssTile tile ] [ ]
+  in
+    main_
+      [ cssMain ]
+      [ 
+        div
+          [ cssTileContainer ]
+          (List.map (\tile -> viewTile tile) model.tiles)
+      , div 
+          [ cssControlPanel ]
+          [
+            button 
+              [ cssBtn
+              , cssBtnGenerate
+              , onClick GenerateMap
+              ]
+              [ text "GENERATE MAP" ]
+          ]
+      ]
 
 -- STYLES
+
+cssTile tile =
+  style
+    [ ("position", "absolute")
+    , ("backgroundColor", tile.color)
+    , ("top", toString tile.y ++ "px")
+    , ("left", toString tile.x ++ "px")
+    , ("width", toString tile.size ++ "px")
+    , ("height", toString tile.size ++ "px")
+    ]
+
+cssTileContainer =
+  style
+    [ ("position", "absolute")
+    , ("top", "0")
+    , ("left", "0")
+    , ("width", "100vw")
+    , ("height", "100vh")
+    , ("z-index", "1")
+    ]
 
 cssMain : Attribute Msg
 cssMain =
@@ -64,6 +111,7 @@ cssControlPanel =
     , ("padding", "20px")
     , ("backgroundColor", "#ccc")
     , ("display", "flex")
+    , ("z-index", "100")
     ]
 
 cssBtn =
