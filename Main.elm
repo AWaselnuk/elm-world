@@ -1,7 +1,7 @@
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
-import Random
+import Random exposing (Generator)
 import Window
 import Task
 
@@ -34,7 +34,7 @@ type alias Model =
 initModel : Model
 initModel =
   let
-    tiles = [ Tile 50 50 50 "magenta" ]
+    tiles = []
   in
     { tiles = tiles
     , windowSize = Window.Size 0 0 
@@ -45,7 +45,7 @@ initModel =
 type Msg =
   NoOp
   | GenerateMap
-  | NewMap (Int, Int)
+  | NewMap (List Tile)
   | NewWindowSize Window.Size
   
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -54,13 +54,8 @@ update msg model =
     NoOp ->
       (model, Cmd.none)
     GenerateMap ->
-      (model, Random.generate NewMap (Random.pair (Random.int 0 1000) (Random.int 0 1000)))
-    NewMap randomPoint ->
-      let
-        (x, y) = randomPoint
-        newTiles = [ Tile x y 50 "magenta" ]
-      in
-        
+      (model, Random.generate NewMap tilesGenerator)
+    NewMap newTiles ->
       ({ model | 
             tiles = newTiles }
       , Cmd.none) 
@@ -69,6 +64,16 @@ update msg model =
             windowSize = windowSize }
       , Cmd.none)
 
+tilesGenerator : Generator (List Tile)
+tilesGenerator =
+  Random.list 100 tileGenerator
+
+-- Tile generator turns a more primitive generator into a Tile.
+-- Next step is to use Array.sample to produce different tile colors.
+tileGenerator : Generator Tile
+tileGenerator =
+  Random.map (\(x, y) -> Tile x y 50 "green") (Random.pair (Random.int 0 1000) (Random.int 0 1000))
+  
 -- VIEW
 
 view : Model -> Html Msg
