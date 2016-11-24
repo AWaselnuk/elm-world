@@ -84,8 +84,9 @@ view model =
   in
     main_
       [ cssMain ]
-      [ 
-        div
+      [
+        styleTag 
+      , div
           [ cssTileContainer ]
           (List.map (\tile -> viewTile tile) model.tiles)
       , div 
@@ -102,6 +103,12 @@ view model =
 
 -- STYLES
 
+styleTag =
+  let
+    styles = "body { overflow: hidden; }"
+  in
+    node "style" [] [ text styles ]
+    
 cssTile tile =
   style
     [ ("position", "absolute")
