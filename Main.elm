@@ -2,14 +2,20 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
 import Random
+import Window
+import Task
 
 main =
   Html.program
-    { init = (model, Cmd.none)
+    { init = (initModel, initWindowSizeCmd)
     , update = update
     , subscriptions = \_ -> Sub.none
     , view = view 
     }
+
+initWindowSizeCmd : Cmd Msg
+initWindowSizeCmd =
+  Task.perform NewWindowSize Window.size
 
 -- MODEL
 
@@ -22,14 +28,17 @@ type alias Tile =
   
 type alias Model = 
   { tiles : List Tile
+  , windowSize : Window.Size
   }
 
-model : Model
-model =
+initModel : Model
+initModel =
   let
     tiles = [ Tile 50 50 50 "magenta" ]
   in
-    { tiles = tiles }
+    { tiles = tiles
+    , windowSize = Window.Size 0 0 
+    }
 
 -- UPDATE
 
@@ -37,6 +46,7 @@ type Msg =
   NoOp
   | GenerateMap
   | NewMap (Int, Int)
+  | NewWindowSize Window.Size
   
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -54,6 +64,10 @@ update msg model =
       ({ model | 
             tiles = newTiles }
       , Cmd.none) 
+    NewWindowSize windowSize ->
+      ({ model |
+            windowSize = windowSize }
+      , Cmd.none)
 
 -- VIEW
 
