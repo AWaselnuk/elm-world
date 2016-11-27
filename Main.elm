@@ -1,7 +1,9 @@
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
+import Array
 import Random exposing (Generator)
+import Random.Array
 import Window
 import Task
 
@@ -54,7 +56,7 @@ update msg model =
     NoOp ->
       (model, Cmd.none)
     GenerateMap ->
-      (model, Random.generate NewMap tilesGenerator)
+      (model, Random.generate NewMap mapGenerator)
     NewMap newTiles ->
       ({ model | 
             tiles = newTiles }
@@ -64,48 +66,72 @@ update msg model =
             windowSize = windowSize }
       , Cmd.none)
 
-tilesGenerator : Generator (List Tile)
-tilesGenerator =
-  Random.list 100 tileGenerator
 
--- Tile generator turns a more primitive generator into a Tile.
--- Next step is to use Array.sample to produce different tile colors.
-tileGenerator : Generator Tile
-tileGenerator =
-  Random.map (\(x, y) -> Tile x y 50 "green") (Random.pair (Random.int 0 1000) (Random.int 0 1000))
+mapGenerator : Generator (List Tile)
+mapGenerator =
+  let 
+    rowCount = 50
+    colCount = 100
+    tileSize = 30
+    tileColors = Array.fromList ["red", "green", "blue"]
+    defaultTileColor = "green"
+    -- [(0, 0), (0, 1), (0, 2) ...]
+    gridCoords =
+      List.concatMap 
+        (\i -> List.map2 (,) (List.repeat colCount i) (List.range 0 (rowCount - 1)))
+        (List.range 0 (colCount - 1))
+    tiles =
+      List.map (\(x, y) -> Tile x y tileSize defaultTileColor) gridCoords
+    maybeColorToTile c t = 
+      { t | color = Maybe.withDefault defaultTileColor c }
+  in
+    Random.map
+      (\colors -> List.map2 maybeColorToTile colors tiles)
+      (colorsGenerator (rowCount * colCount) tileColors)
+  
+colorsGenerator : Int -> Array.Array a -> Generator (List (Maybe a))
+colorsGenerator totalColors tileColors =
+    Random.list totalColors (Random.Array.sample tileColors)
   
 -- VIEW
 
 view : Model -> Html Msg
 view model =
-  let 
-    viewTile tile =
-      div [ cssTile tile ] [ ]
-  in
-    main_
-      [ cssMain ]
-      [
-        styleTag 
-      , div
-          [ cssTileContainer ]
-          (List.map (\tile -> viewTile tile) model.tiles)
-      , div 
-          [ cssControlPanel ]
-          [
-            button 
-              [ cssBtn
-              , cssBtnGenerate
-              , onClick GenerateMap
-              ]
-              [ text "GENERATE MAP" ]
-          ]
+  main_
+    [ cssMain ]
+    [
+      styleTag 
+    , div
+        [ cssTileContainer ]
+        (viewTileGrid model.tiles)
+    , div 
+        [ cssControlPanel ]
+        [
+          button 
+            [ cssBtn
+            , cssBtnGenerate
+            , onClick GenerateMap
+            ]
+            [ text "GENERATE MAP" ]
+        ]
       ]
+
+viewTileGrid : List Tile -> List (Html Msg)
+viewTileGrid tiles =
+  (List.map (\tile -> viewTile tile) tiles)
+  
+viewTile : Tile -> Html Msg
+viewTile tile =
+  div [ cssTile tile ] [ ]
 
 -- STYLES
 
 styleTag =
   let
-    styles = "body { overflow: hidden; }"
+    styles = """
+      body { overflow: hidden; }
+      .elm-overlay { z-index: 9999; }
+    """
   in
     node "style" [] [ text styles ]
     
@@ -113,8 +139,8 @@ cssTile tile =
   style
     [ ("position", "absolute")
     , ("backgroundColor", tile.color)
-    , ("top", toString tile.y ++ "px")
-    , ("left", toString tile.x ++ "px")
+    , ("top", toString (tile.y * tile.size) ++ "px")
+    , ("left", toString (tile.x * tile.size) ++ "px")
     , ("width", toString tile.size ++ "px")
     , ("height", toString tile.size ++ "px")
     ]
