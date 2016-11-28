@@ -80,13 +80,13 @@ mapGenerator =
       List.concatMap 
         (\i -> List.map2 (,) (List.repeat colCount i) (List.range 0 (rowCount - 1)))
         (List.range 0 (colCount - 1))
-    tiles =
+    defaultTiles =
       List.map (\(x, y) -> Tile x y tileSize defaultTileColor) gridCoords
     maybeColorToTile c t = 
       { t | color = Maybe.withDefault defaultTileColor c }
   in
     Random.map
-      (\colors -> List.map2 maybeColorToTile colors tiles)
+      (\colors -> List.map2 maybeColorToTile colors defaultTiles)
       (colorsGenerator (rowCount * colCount) tileColors)
   
 colorsGenerator : Int -> Array.Array a -> Generator (List (Maybe a))
@@ -101,9 +101,7 @@ view model =
     [ cssMain ]
     [
       styleTag 
-    , div
-        [ cssTileContainer ]
-        (viewTileGrid model.tiles)
+    , (viewTileGrid model.tiles)
     , div 
         [ cssControlPanel ]
         [
@@ -116,13 +114,15 @@ view model =
         ]
       ]
 
-viewTileGrid : List Tile -> List (Html Msg)
+viewTileGrid : List Tile -> Html Msg
 viewTileGrid tiles =
-  (List.map (\tile -> viewTile tile) tiles)
-  
-viewTile : Tile -> Html Msg
-viewTile tile =
-  div [ cssTile tile ] [ ]
+  let
+    viewTile tile =
+      div [ cssTile tile ] [ ]
+  in
+    div
+      [ cssTileContainer ]
+      (List.map (\tile -> viewTile tile) tiles)
 
 -- STYLES
 
