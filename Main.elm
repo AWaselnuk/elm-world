@@ -73,8 +73,8 @@ mapGenerator =
     rowCount = 50
     colCount = 100
     tileSize = 30
-    tileColors = Array.fromList ["red", "green", "blue"]
-    defaultTileColor = "green"
+    tileColors = Array.fromList ["#FF9966", "#87A96B", "#89CFF0"]
+    defaultTileColor = "#87A96B"
     -- [(0, 0), (0, 1), (0, 2) ...]
     gridCoords =
       List.concatMap 
