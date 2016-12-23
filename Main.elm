@@ -12,7 +12,7 @@ main =
     { init = (initModel, initWindowSizeCmd)
     , update = update
     , subscriptions = \_ -> Sub.none
-    , view = view 
+    , view = view
     }
 
 initWindowSizeCmd : Cmd Msg
@@ -21,14 +21,16 @@ initWindowSizeCmd =
 
 -- MODEL
 
-type alias Tile = 
+type alias Color = String
+
+type alias Tile =
   { x : Int
   , y : Int
   , size : Int
-  , color : String
+  , color : Color
   }
-  
-type alias Model = 
+
+type alias Model =
   { tiles : List Tile
   , windowSize : Window.Size
   }
@@ -39,7 +41,7 @@ initModel =
     tiles = []
   in
     { tiles = tiles
-    , windowSize = Window.Size 0 0 
+    , windowSize = Window.Size 0 0
     }
 
 -- UPDATE
@@ -49,7 +51,7 @@ type Msg =
   | GenerateMap
   | NewMap (List Tile)
   | NewWindowSize Window.Size
-  
+
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
@@ -58,9 +60,9 @@ update msg model =
     GenerateMap ->
       (model, Random.generate NewMap mapGenerator)
     NewMap newTiles ->
-      ({ model | 
+      ({ model |
             tiles = newTiles }
-      , Cmd.none) 
+      , Cmd.none)
     NewWindowSize windowSize ->
       ({ model |
             windowSize = windowSize }
@@ -69,30 +71,40 @@ update msg model =
 
 mapGenerator : Generator (List Tile)
 mapGenerator =
-  let 
+  let
     rowCount = 50
     colCount = 100
     tileSize = 30
-    tileColors = Array.fromList ["#FF9966", "#87A96B", "#89CFF0"]
-    defaultTileColor = "#87A96B"
     -- [(0, 0), (0, 1), (0, 2) ...]
     gridCoords =
-      List.concatMap 
+      List.concatMap
         (\i -> List.map2 (,) (List.repeat colCount i) (List.range 0 (rowCount - 1)))
         (List.range 0 (colCount - 1))
     defaultTiles =
       List.map (\(x, y) -> Tile x y tileSize defaultTileColor) gridCoords
-    maybeColorToTile c t = 
-      { t | color = Maybe.withDefault defaultTileColor c }
+    colorToTile c t =
+      { t | color = c }
   in
     Random.map
-      (\colors -> List.map2 maybeColorToTile colors defaultTiles)
-      (colorsGenerator (rowCount * colCount) tileColors)
-  
-colorsGenerator : Int -> Array.Array a -> Generator (List (Maybe a))
-colorsGenerator totalColors tileColors =
-    Random.list totalColors (Random.Array.sample tileColors)
-  
+      (\colors -> List.map2 colorToTile colors defaultTiles)
+      (colorsGenerator (rowCount * colCount))
+
+colorsGenerator : Int -> Generator (List Color)
+colorsGenerator totalColors =
+  Random.list totalColors colorGenerator
+
+colorGenerator : Generator Color
+colorGenerator =
+  let
+    tileColors = Array.fromList ["#FF9966", "#87A96B", "#89CFF0"]
+  in
+    Random.map
+    (\maybeColor -> Maybe.withDefault defaultTileColor maybeColor)
+    (Random.Array.sample tileColors)
+
+defaultTileColor : Color
+defaultTileColor = "#87A96B"
+
 -- VIEW
 
 view : Model -> Html Msg
@@ -100,12 +112,12 @@ view model =
   main_
     [ cssMain ]
     [
-      styleTag 
+      styleTag
     , (viewTileGrid model.tiles)
-    , div 
+    , div
         [ cssControlPanel ]
         [
-          button 
+          button
             [ cssBtn
             , cssBtnGenerate
             , onClick GenerateMap
@@ -134,7 +146,7 @@ styleTag =
     """
   in
     node "style" [] [ text styles ]
-    
+
 cssTile tile =
   style
     [ ("position", "absolute")
@@ -179,7 +191,7 @@ cssControlPanel =
     ]
 
 cssBtn =
-  style 
+  style
     [ ("background", "none")
     , ("border", "none")
     ]
