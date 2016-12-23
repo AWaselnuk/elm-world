@@ -1,10 +1,9 @@
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
-import Array exposing (Array)
+import Array
 import Random exposing (Generator)
 import Random.Array
-import HeightMap exposing (HeightMap, Coord)
 import Window
 import Task
 
@@ -24,23 +23,33 @@ initWindowSizeCmd =
 
 type alias Color = String
 
+type alias Tile =
+  { x : Int
+  , y : Int
+  , size : Int
+  , color : Color
+  }
+
 type alias Model =
-  { heightMap : HeightMap
+  { tiles : List Tile
   , windowSize : Window.Size
   }
 
 initModel : Model
 initModel =
-  { heightMap = HeightMap.build 10
-  , windowSize = Window.Size 0 0
-  }
+  let
+    tiles = []
+  in
+    { tiles = tiles
+    , windowSize = Window.Size 0 0
+    }
 
 -- UPDATE
 
 type Msg =
   NoOp
   | GenerateMap
-  | NewMap HeightMap
+  | NewMap (List Tile)
   | NewWindowSize Window.Size
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -49,10 +58,10 @@ update msg model =
     NoOp ->
       (model, Cmd.none)
     GenerateMap ->
-      (model, Random.generate NewMap heightMapGenerator)
-    NewMap newHeightMap ->
+      (model, Random.generate NewMap mapGenerator)
+    NewMap newTiles ->
       ({ model |
-            heightMap = newHeightMap }
+            tiles = newTiles }
       , Cmd.none)
     NewWindowSize windowSize ->
       ({ model |
@@ -60,22 +69,38 @@ update msg model =
       , Cmd.none)
 
 
-heightMapGenerator : Generator HeightMap
-heightMapGenerator =
+mapGenerator : Generator (List Tile)
+mapGenerator =
   let
-    heightMap = HeightMap.build 10
+    rowCount = 50
+    colCount = 100
+    tileSize = 30
+    -- [(0, 0), (0, 1), (0, 2) ...]
+    gridCoords =
+      List.concatMap
+        (\i -> List.map2 (,) (List.repeat colCount i) (List.range 0 (rowCount - 1)))
+        (List.range 0 (colCount - 1))
+    defaultTiles =
+      List.map (\(x, y) -> Tile x y tileSize defaultTileColor) gridCoords
+    colorToTile c t =
+      { t | color = c }
   in
     Random.map
-      (\heights -> { heightMap | cells = heights })
-      (heightsGenerator <| Array.length heightMap.cells)
+      (\colors -> List.map2 colorToTile colors defaultTiles)
+      (colorsGenerator (rowCount * colCount))
 
-heightsGenerator : Int -> Generator (Array Float)
-heightsGenerator length =
-  Random.Array.array length heightGenerator
+colorsGenerator : Int -> Generator (List Color)
+colorsGenerator totalColors =
+  Random.list totalColors colorGenerator
 
-heightGenerator : Generator Float
-heightGenerator =
-  Random.float 0 1
+colorGenerator : Generator Color
+colorGenerator =
+  let
+    tileColors = Array.fromList ["#FF9966", "#87A96B", "#89CFF0"]
+  in
+    Random.map
+    (\maybeColor -> Maybe.withDefault defaultTileColor maybeColor)
+    (Random.Array.sample tileColors)
 
 defaultTileColor : Color
 defaultTileColor = "#87A96B"
@@ -88,7 +113,7 @@ view model =
     [ cssMain ]
     [
       styleTag
-    , (viewMap model.heightMap)
+    , (viewTileGrid model.tiles)
     , div
         [ cssControlPanel ]
         [
@@ -101,15 +126,15 @@ view model =
         ]
       ]
 
-viewMap : HeightMap -> Html Msg
-viewMap heightMap =
+viewTileGrid : List Tile -> Html Msg
+viewTileGrid tiles =
   let
-    viewCell cell =
-      div [ cssCell ] [ text <| toString cell ]
+    viewTile tile =
+      div [ cssTile tile ] [ ]
   in
     div
-      [ cssCellContainer ]
-      (Array.toList <| Array.map (\cell -> viewCell cell) heightMap.cells)
+      [ cssTileContainer ]
+      (List.map (\tile -> viewTile tile) tiles)
 
 -- STYLES
 
@@ -121,15 +146,6 @@ styleTag =
     """
   in
     node "style" [] [ text styles ]
-
-cssCell =
-  style
-    [ ("width", "50px")
-    , ("height", "50px")
-    ]
-
-cssCellContainer =
-  style [ ]
 
 cssTile tile =
   style

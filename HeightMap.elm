@@ -1,4 +1,4 @@
-module HeightMap exposing (build, get, set)
+module HeightMap exposing (HeightMap, Coord, build, get, set)
 
 import Array exposing (Array)
 
